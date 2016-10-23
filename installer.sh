@@ -22,6 +22,17 @@ non_break_space=" " #char code 160
     uname -s | tr '[:upper:]' '[:lower:]'
   }
 
+  which() {
+    for p in /bin /usr/bin /usr/local/bin; do
+      if [ -x $p/$1 ]; then
+        echo $p/$1
+        return 0
+      fi
+    done
+    command -v $@
+    return $?
+  }
+
 # CACHE
   cachefile="$HOME/.cache/dist.ipfs.io-installer"
   mkdir -p $(dirname $cachefile)
@@ -103,8 +114,11 @@ $1=$2"
 
   isinstalled() {
     getbin $1
-    which $b > /dev/null 2> /dev/null
-    return $?
+    if [ -x "/usr/local/bin/$b" ]; then
+      return 0;
+    else
+      return 1;
+    fi
   }
 
   getversion_() {
@@ -315,7 +329,8 @@ ipfs_update() {
 
 remove_soft() {
   soft="$1"
-  pa=$(which $soft | head -n 1)
+  pa="/usr/local/bin/$soft"
+  if [ ! -e $pa ]; then quit_with_error "Binary does not exist!"; fi
   t="This will remove $pa\nAre you sure want to continue?"
   dialog --yesno ${t//" "/"$non_break_space"} 10 70
   if [ $? -ne 0 ]; then
