@@ -386,6 +386,11 @@ prog_menu() {
         select_version "Installing_$soft" $soft "install_version"
         prog_menu $soft
         ;;
+      About*)
+        echo "Opening https://dist.ipfs.io/#$soft in browser..."
+        x-www-browser "https://dist.ipfs.io/#$soft"
+        prog_menu $soft
+        ;;
       Upgrade*)
         ipfs_update
         prog_menu $soft
