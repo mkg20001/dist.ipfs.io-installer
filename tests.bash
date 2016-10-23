@@ -32,6 +32,20 @@ tests() {
   test_pass
 }
 
+#echo " - list"
+#echo " - update-cache"
+#echo " - list-versions"
+
+#echo " - install <package> <version>" yes
+#echo " - status <package>"
+#echo " - remove <package>"
+#echo " - ipfs-update <version>"
+#echo " - changelog <package> [<version>]"
+#echo " - about <package> --browser"
+#echo " - gui" N/A
+
+
+
 tests "Update Cache" "update-cache" 0 "Fetching version lists...
 fs-repo-migrations
 go-ipfs
@@ -42,8 +56,14 @@ ipfs-update
 ipget
 Done!"
 
+tests ""
+
 for soft in "${list[@]}"; do
-  tests "Install $soft" "install $soft" 0
+  tests "Status $soft (not installed)" "status $soft" 0
+  tests "Versions $soft" "list-versions $soft" 0
+  ver=$(echo "$output" | grep "v[0-9.]*" -o | head -n 1)
+  echo "Version: $soft $ver"
+  tests "Install $soft" "install $soft $ver" 0
 done
 
 exit $hasfailed
