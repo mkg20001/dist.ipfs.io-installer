@@ -59,11 +59,12 @@ Done!"
 tests ""
 
 for soft in "${list[@]}"; do
-  tests "Status $soft (not installed)" "status $soft" 0
+  tests "Status $soft (not installed)" "status $soft" 1
   tests "Versions $soft" "list-versions $soft" 0
   ver=$(echo "$output" | grep "v[0-9.]*" -o | head -n 1)
   echo "Version: $soft $ver"
   tests "Install $soft" "install $soft $ver" 0
+  tests "Status $soft (installed)" "status $soft" 0
 done
 
 exit $hasfailed
