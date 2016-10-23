@@ -365,7 +365,7 @@ prog_menu() {
   else
     res+=("Install..." "Download_and_install_${soft}_to_/usr/local/bin/$b")
   fi
-  res+=("More_Info..." "URLs")
+  res+=("About..." "https://dist.ipfs.io/#$soft")
   res+=("Changelog..." "List_all_changes_made...")
   dialog --menu $soft 0 0 10 ${res[@]}
   if [ -z $res ]; then mainmenu; else
