@@ -219,14 +219,22 @@ install_version_() {
 
     if [ -f ./install.sh ]; then
       log "Running install.sh"
-      sudo bash ./install.sh
+      if [ "$6" == "cli" ]; then
+        bash ./install.sh
+      else
+        sudo bash ./install.sh
+      fi
       echo
       if [ $? -ne 0 ]; then
         log "FAILED!"
       fi
     else
       target="/usr/local/bin/$b"
-      sudo mv $b $target
+      if [ "$6" == "cli" ]; then
+        mv $b $target
+      else
+        sudo mv $b $target
+      fi
       if [ $? -ne 0 ]; then
         log "FAILED!"
       else
@@ -436,10 +444,10 @@ mainmenu() {
     if isinstalled $soft; then
       getinfo $soft
       if [ "$sver" == "N/A" ] || is_brokenver $soft; then
-        t="Installed,_____Latest_$slatest"
+        t="Installed,______Latest_$slatest"
       else
         if [ "x$sver" != "x$slatest" ]; then ap="_(Update_available!)"; else ap=""; fi
-        t="Current:_${sver}_Latest:_$slatest$ap"
+        t="Current:_${sver},_Latest:_$slatest$ap"
       fi
     else
       t="Not_installed"
@@ -476,7 +484,193 @@ mainloop() {
     updatedata lastscan $(date +%s)
   fi
   mainmenu
-  quit_with_error "Internal Error" # if a function throws an error
+  quit_with_error "Internal Error" # if something exited unexpected
 }
 
-mainloop
+#cli
+
+cli_error() {
+  echo "ERROR: $@" 1>&2
+  exit 2
+}
+
+package_valid() {
+  for p in "${list[@]}"; do
+    if [ "$p" == "$1" ]; then return 0; fi
+  done
+  return 2
+}
+
+cache_check() {
+  local last=$(getdata lastscan)
+  if [ "x$last" == "x" ]; then
+    cli_error "Cache is empty!
+Run: $0 update-cache"
+  fi
+}
+
+package_validate() {
+  if [ -z $1 ]; then cli_error "Missing package argument"; fi
+  cache_check
+  if ! package_valid $1; then
+    cli_error "Package name is invalid"
+  fi
+  #prepare
+  getinfo $1
+  getbin $1
+}
+
+version_valid() {
+  for v in $svers; do
+    if [ "$v" == "$1" ]; then return 0; fi
+  done
+  return 2
+}
+
+version_validate() {
+  if [ -z $2 ]; then cli_error "Missing version argument"; fi
+  package_validate $1
+  if ! version_valid $2; then
+    cli_error "Invalid version for $1"
+  fi
+}
+
+check_root() {
+  if [ $(id -u) != "0" ]; then cli_error "Only root can do this (use sudo $0)"; fi
+}
+
+if [ -z $1 ]; then
+  mainloop
+else
+  case "$1" in
+    install)
+      check_root
+      version_validate $2 $3
+      install_version_ $2 $3 ${3/"v"/""} $sver $sverv "cli"
+      ;;
+    remove)
+      check_root
+      package_validate $2
+      soft=$2
+      if ! isinstalled $2; then cli_error "Not installed, not removing"; fi
+      pa="/usr/local/bin/$soft"
+      if [ ! -e $pa ]; then cli_error "Binary does not exist!"; fi
+      echo "$soft is going to be removed!"
+      echo "$pa is the current location of $soft"
+      read -p "Sure? [y/N]" sure
+      case "$sure" in
+        [yY] | [yY][Ee] | [yY][Ee][Ss])
+          rm $pa
+          ;;
+        *)
+          cli_error "Abort."
+          ;;
+      esac
+      ;;
+    status)
+      package_validate $2
+      soft=$2
+      t=""
+      if isinstalled $soft; then
+        getinfo $soft
+        if [ "$sver" == "N/A" ] || is_brokenver $soft; then
+          t="Installed, Latest $slatest"
+        else
+          if [ "x$sver" != "x$slatest" ]; then ap=" (Update available!)"; else ap=""; fi
+          t="Current: ${sver}, Latest: $slatest$ap"
+        fi
+      else
+        t="Not installed"
+      fi
+      echo " - $soft: $t"
+      if isinstalled $soft; then exit 0; else exit 1; fi
+      ;;
+    #ipfs-update
+    update-cache)
+      fetchlist_
+      ;;
+    list)
+      cache_check
+      echo "Packages:"
+      for soft in ${list[@]}; do
+        t=""
+        if isinstalled $soft; then
+          getinfo $soft
+          if [ "$sver" == "N/A" ] || is_brokenver $soft; then
+            t="Installed, Latest $slatest"
+          else
+            if [ "x$sver" != "x$slatest" ]; then ap=" (Update available!)"; else ap=""; fi
+            t="Current: ${sver}, Latest: $slatest$ap"
+          fi
+        else
+          t="Not installed"
+        fi
+        echo " - $soft: $t"
+      done
+      ;;
+    list-versions)
+      package_validate $2
+      echo "Versions:"
+      res=""
+      for v in $svers; do
+        cver=${v/"v"/""}
+        ap=""
+        if [ "$cver" == "$slatest" ]; then
+          ap="${ap} (latest)"
+        fi
+        if [ "$cver" == "$sver" ]; then
+          ap="${ap} (current)"
+        fi
+        res=" - ${soft}_$cver $v$ap
+$res"
+      done
+      echo "$res"
+      ;;
+    changelog)
+      package-validate $2
+      if version_valid $3; then
+        lookup=$3
+      else
+        lookup=$slatest
+      fi
+      ch="/tmp/$RANDOM.$1.md"
+      wget -qq https://raw.githubusercontent.com/ipfs/$1/$2/CHANGELOG.md -O $ch
+      if [ $? -ne 0 ]; then
+        cli_error "Failed to load changelog!"
+        rm -f $ch
+      else
+        cat $ch
+        rm $ch
+      fi
+      ;;
+    about)
+      package_validate $2
+      case "$3" in
+        -b|--browser)
+          echo "Opening https://dist.ipfs.io/#$soft in browser..."
+          x-www-browser "https://dist.ipfs.io/#$soft"
+          ;;
+        *)
+          echo "About $2: https://dist.ipfs.io/#$soft"
+          ;;
+      esac
+      ;;
+    gui)
+      mainloop
+      ;;
+    *)
+      echo "Usage: $0 <command> [<options>]"
+      echo "Commands:"
+      echo " - install <package> <version>"
+      echo " - remove <package>"
+      echo " - status <package>"
+      echo " - ipfs-update <version>"
+      echo " - update-cache"
+      echo " - list"
+      echo " - list-versions"
+      echo " - changelog <package> [<version>]"
+      echo " - about <package> --browser"
+      echo " - gui"
+      ;;
+  esac
+fi
