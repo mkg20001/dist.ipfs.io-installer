@@ -21,9 +21,10 @@ test_pass() {
 tests() {
   echo
   echo "[test] $1"
-  output=$($prg $2 2>&1 | sed -e 's#^[0-9]*:[0-9]*:[0-9]* ##')
+  output=$($prg $2 2>&1)
   ex=$?
   echo "$output"
+  output=$(echo "$output" | sed -e 's#^[0-9]*:[0-9]*:[0-9]* ##')
   if [ ! $ex -eq $3 ]; then test_fail "Wrong exit code" $3 $ex "$output"; return 2; fi
   if [ ! -z "$4" ]; then
     if [ "$output" != "$4" ]; then test_fail "Wrong output" "$4" "$output" "$output"; return 2; fi
