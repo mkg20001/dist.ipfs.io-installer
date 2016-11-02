@@ -58,8 +58,6 @@ ipfs-update
 ipget
 Done!"
 
-tests ""
-
 for soft in "${list[@]}"; do
   tests "Remove $soft (not installed)" "remove $soft" 2 "ERROR: Not installed, not removing"
   tests "Status $soft (not installed)" "status $soft" 1
