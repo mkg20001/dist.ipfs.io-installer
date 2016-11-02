@@ -337,7 +337,8 @@ ipfs_update() {
 
 remove_soft() {
   soft="$1"
-  pa="/usr/local/bin/$soft"
+  getbin $soft
+  pa="/usr/local/bin/$b"
   if [ ! -e $pa ]; then quit_with_error "Binary does not exist!"; fi
   t="This will remove $pa\nAre you sure want to continue?"
   dialog --yesno ${t//" "/"$non_break_space"} 10 70
