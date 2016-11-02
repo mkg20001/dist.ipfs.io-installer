@@ -12,6 +12,8 @@ test_fail() {
   echo " - Expected: $2"
   echo " - Got: $3"
   echo " - $(echo $4 | grep '^ERROR:[a-zA-Z0-9_! -]*' -o)"
+  echo "[cancel] exit with 2"
+  exit 2
 }
 
 test_pass() {
