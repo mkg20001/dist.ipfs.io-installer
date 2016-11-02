@@ -46,14 +46,14 @@ non_break_space=" " #char code 160
     echo "$cache" | grep "^$1=" 2> /dev/null > /dev/null
     ex=$?
     if [ $ex -ne 0 ]; then
-      read_cache
-      cache="$cache
-$1=$2"
-      echo "$cache" > $cachefile
+      :
     else
-      sed "s/^$1=/'$1=$2'/g" -i $cachefile
-      read_cache
+      sed -i "/^$1=/d" -i $cachefile
     fi
+    read_cache
+    cache="$cache
+$1=$2"
+    echo "$cache" > $cachefile
   }
 
   getdata() {
@@ -170,7 +170,7 @@ dialog() {
   args=${args//"_"/"$non_break_space"}
   dialog_unsafe $args 2> $t
   local ex=$?
-  if [ $ex -ne 0 ] && [ $ex -ne 1 ]; then
+  if [ $ex -ne 0 ] && [ $ex -ne 1 ] && [ $ex -ne 2 ]; then
     cat $t
     log "[dialog] $*"
     log "[exit with $ex]"
@@ -455,8 +455,17 @@ mainmenu() {
     res+=($soft)
     res+=($t)
   done
-  dialog --menu "dist.ipfs.io" 0 0 10 ${res[@]}
-  if [ -z $res ]; then quit_app; else prog_menu $res; fi
+  dialog --help-button --help-label "Refresh_Cache" --menu "dist.ipfs.io" 0 0 10 ${res[@]}
+
+  if [ -z $res ]; then
+    quit_app
+  else
+    if [[ "$res" == HELP* ]]; then
+      mainloop "f"
+    else
+      prog_menu $res
+    fi
+  fi
 }
 
 
@@ -479,7 +488,7 @@ fetchlist() {
 mainloop() {
   echo "Loading..." | dialog --progressbox "dist.ipfs.io_Installer" 7 30
   local last=$(getdata lastscan)
-  if [ "x$last" == "x" ]; then
+  if [ "x$last" == "x" ] || [ "x$1" == "xf" ]; then
     fetchlist
     updatedata lastscan $(date +%s)
   fi
@@ -545,8 +554,15 @@ else
   case "$1" in
     install)
       check_root
-      version_validate $2 $3
-      install_version_ $2 $3 ${3/"v"/""} $sver $sverv "cli"
+      if [ -z $3 ]; then
+        package_validate $2
+        vv=$slatestv
+        log "No version specifed - using latest $vv"
+      else
+        version_validate $2 $3
+        vv=$3
+      fi
+      install_version_ $2 $vv ${vv/"v"/""} $sver $sverv "cli"
       ;;
     remove)
       check_root
@@ -555,16 +571,24 @@ else
       if ! isinstalled $2; then cli_error "Not installed, not removing"; fi
       pa="/usr/local/bin/$soft"
       if [ ! -e $pa ]; then cli_error "Binary does not exist!"; fi
-      echo "$soft is going to be removed!"
-      echo "$pa is the current location of $soft"
-      read -p "Sure? [y/N]" sure
-      case "$sure" in
-        [yY] | [yY][Ee] | [yY][Ee][Ss])
+      log "$soft is going to be removed!"
+      log "$pa is the current location of $soft"
+      case "$3" in
+        --[yY] | --[yY][Ee] | --[yY][Ee][Ss] | -[yY] | -[yY][Ee] | -[yY][Ee][Ss] | -f)
           rm $pa
+          log "removed $pa"
           ;;
         *)
-          cli_error "Abort."
-          ;;
+          read -p "Sure? [y/N]" sure
+          case "$sure" in
+            [yY] | [yY][Ee] | [yY][Ee][Ss])
+              rm $pa
+              echo "removed $pa"
+              ;;
+            *)
+              cli_error "Abort."
+              ;;
+          esac
       esac
       ;;
     status)
@@ -661,8 +685,8 @@ $res"
     *)
       echo "Usage: $0 <command> [<options>]"
       echo "Commands:"
-      echo " - install <package> <version>"
-      echo " - remove <package>"
+      echo " - install <package> [<version>]"
+      echo " - remove <package> [-y]"
       echo " - status <package>"
       echo " - ipfs-update <version>"
       echo " - update-cache"
