@@ -614,6 +614,7 @@ else
     #ipfs-update
     update-cache)
       fetchlist_
+      updatedata lastscan $(date +%s)
       ;;
     list)
       cache_check
