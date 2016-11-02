@@ -570,7 +570,8 @@ else
       package_validate $2
       soft=$2
       if ! isinstalled $2; then cli_error "Not installed, not removing"; fi
-      pa="/usr/local/bin/$soft"
+      getbin $soft
+      pa="/usr/local/bin/$b"
       if [ ! -e $pa ]; then cli_error "Binary does not exist!"; fi
       log "$soft is going to be removed!"
       log "$pa is the current location of $soft"
