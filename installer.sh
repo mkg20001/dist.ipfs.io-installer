@@ -1,6 +1,6 @@
 #!/bin/bash
 
-list=(testdd fs-repo-migrations go-ipfs gx gx-go ipfs-see-all ipfs-update ipget)
+list=(fs-repo-migrations go-ipfs gx gx-go ipfs-see-all ipfs-update ipget)
 getmainrepo() {
   case "$1" in
     fs-repo-migrations|go-ipfs|ipfs-update|ipget)
