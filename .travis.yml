@@ -1,2 +1,4 @@
-script: make test
+script: make docker-test
 sudo: required
+services:
+  - docker

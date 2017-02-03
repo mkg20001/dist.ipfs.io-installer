@@ -24,7 +24,7 @@ test_pass() {
 
 tests() {
   echo
-  echo "[test] $1 (\$ $prg $2)"
+  echo "[test] $1 \$ installer.sh $2"
   output=$($prg $2 2>&1)
   ex=$?
   echo "$output"
@@ -65,7 +65,7 @@ for soft in "${list[@]}"; do
   tests "Remove $soft (not installed)" "remove $soft" 2 "ERROR: Not installed, not removing"
   tests "Status $soft (not installed)" "status $soft" 1
   tests "Versions $soft" "list-versions $soft" 0
-  ver=$(echo "$output" | grep "v[0-9.]*" -o | head -n 1)
+  ver=$(echo "$output" | grep "v[0-9.a-z-]*" -o | head -n 1)
   echo "Version: $soft $ver"
   tests "Install $soft (with invalid version)" "install $soft invalid" 2 "ERROR: Invalid version for $soft (Is the cache up-to-date?)"
   tests "Install $soft (without version specified)" "install $soft" 0
