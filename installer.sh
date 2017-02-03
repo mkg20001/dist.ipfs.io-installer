@@ -1,6 +1,16 @@
 #!/bin/bash
 
-list=(fs-repo-migrations go-ipfs gx gx-go ipfs-see-all ipfs-update ipget)
+list=(testdd fs-repo-migrations go-ipfs gx gx-go ipfs-see-all ipfs-update ipget)
+getmainrepo() {
+  case "$1" in
+    fs-repo-migrations|go-ipfs|ipfs-update|ipget)
+      mainrepo="ipfs"
+      ;;
+    gx|gx-go|ipfs-see-all)
+      mainrepo="whyrusleeping"
+      ;;
+  esac
+}
 
 non_break_space=" " #char code 160
 
@@ -98,14 +108,14 @@ $1=$2"
 
 # GET
   buildurl() {
-    if curl --silent http://localhost:8080/ipns/dist.ipfs.io/ > /dev/null 2> /dev/null; then
+    if curl --silent -f http://localhost:8080/ipns/dist.ipfs.io/ > /dev/null 2> /dev/null; then
       echo http://localhost:8080/ipns/dist.ipfs.io/$1
     else
       echo https://dist.ipfs.io/$1
     fi
   }
   geturl() {
-    curl --silent $(buildurl $1)
+    curl --silent -f $(buildurl $1)
   }
 
   getbin() {
@@ -114,11 +124,8 @@ $1=$2"
 
   isinstalled() {
     getbin $1
-    if [ -x "/usr/local/bin/$b" ]; then
-      return 0;
-    else
-      return 1;
-    fi
+    [ -x "/usr/local/bin/$b" ] && return 0
+    return 1
   }
 
   getversion_() {
@@ -130,10 +137,7 @@ $1=$2"
   getversion() {
     for c in -v version; do
       local r=$(getversion_ $1 $c)
-      if [ "x$r" != "x" ]; then
-        echo $r
-        return 0;
-      fi
+      [ "x$r" != "x" ] && echo $r && return 0
     done
     echo "N/A"
   }
@@ -141,10 +145,7 @@ $1=$2"
   getversion2() {
     for c in -v version; do
       local r=$(getversion_ $1 $c)
-      if [ "x$r" != "x" ]; then
-        echo v$r
-        return 0;
-      fi
+      [ "x$r" != "x" ] && echo v$r && return 0
     done
     echo "N/A"
   }
@@ -156,7 +157,7 @@ quit_app() {
 
 quit_with_error() {
   echo "ERROR: $1
-The Application will now exit..." | dialog --progressbox "dist.ipfs.io_Installer" 10 50
+The Application will now exit..." | dialog --progressbox "dist.ipfs.io_Installer" 10 75
   exit 2
 }
 
@@ -357,7 +358,8 @@ remove_soft() {
 show_changelog() {
   ch="/tmp/$RANDOM.$1.md"
   dialog --infobox "Loading_changelog!" 5 40
-  wget -qq https://raw.githubusercontent.com/ipfs/$1/$2/CHANGELOG.md -O $ch
+  getmainrepo $1
+  wget -qq https://raw.githubusercontent.com/$mainrepo/$1/$2/CHANGELOG.md -O $ch
   if [ $? -ne 0 ]; then
     sleep 1s | dialog --infobox "Failed_to_load_changelog!" 5 40
     rm -f $ch
@@ -433,8 +435,16 @@ getinfo() {
   svers=$(getversions $soft)
   slatestv=$(join_by "
 " $svers | tail -n 1)
-  if [ -z $slatestv ]; then quit_with_error "No valid version index for $soft was found!
-Try cleaning the cache (rm $cachefile)"; fi
+  [ -z $slatestv ] && [ "x$2" == "xagain" ] && quit_with_error "No valid version index for $soft was found!
+Try cleaning/updating the cache
+(Hint: $cachefile)"
+  if [ -z $slatestv ]; then
+    [ -z $iscli ] && fetchlist
+    [ "x$iscli" == "xtrue" ] && fetchlist_
+    updatedata lastscan $(date +%s)
+    getinfo $1 again
+    return $?
+  fi
   slatest=${slatestv/"v"/""}
 }
 
@@ -475,6 +485,7 @@ fetchlist_() {
   for soft in ${list[@]}; do
     log "$soft"
     vers=$(geturl $soft/versions)
+    [ $? -ne 0 ] && echo "ERROR: Failed to download version list for $soft!" && exit $?
     updatedata versions_$soft "$(echo $vers)"
   done
   log "Done!"
@@ -541,7 +552,7 @@ version_validate() {
   if [ -z $2 ]; then cli_error "Missing version argument"; fi
   package_validate $1
   if ! version_valid $2; then
-    cli_error "Invalid version for $1"
+    cli_error "Invalid version for $1 (Is the cache up-to-date?)"
   fi
 }
 
@@ -552,6 +563,7 @@ check_root() {
 if [ -z $1 ]; then
   mainloop
 else
+  iscli=true
   case "$1" in
     install)
       check_root
@@ -576,7 +588,7 @@ else
       log "$soft is going to be removed!"
       log "$pa is the current location of $soft"
       case "$3" in
-        --[yY] | --[yY][Ee] | --[yY][Ee][Ss] | -[yY] | -[yY][Ee] | -[yY][Ee][Ss] | -f)
+        --[yY] | --[yY][Ee] | --[yY][Ee][Ss] | -[yY] | -[yY][Ee] | -[yY][Ee][Ss] | -[fF])
           rm $pa
           log "removed $pa"
           ;;
@@ -654,14 +666,16 @@ $res"
       echo "$res"
       ;;
     changelog)
-      package-validate $2
-      if version_valid $3; then
-        lookup=$3
+      if [ -z $3 ]; then
+        package_validate $2
+        lookup=$slatestv
       else
-        lookup=$slatest
+        version_validate $2 $3
+        lookup=$3
       fi
       ch="/tmp/$RANDOM.$1.md"
-      wget -qq https://raw.githubusercontent.com/ipfs/$1/$2/CHANGELOG.md -O $ch
+      getmainrepo $2
+      wget -qq https://raw.githubusercontent.com/$mainrepo/$2/$lookup/CHANGELOG.md -O $ch
       if [ $? -ne 0 ]; then
         cli_error "Failed to load changelog!"
         rm -f $ch
@@ -675,7 +689,10 @@ $res"
       case "$3" in
         -b|--browser)
           echo "Opening https://dist.ipfs.io/#$soft in browser..."
+          [ -z "$DISPLAY" ] && echo "WARNING: \$DISPLAY is not set"
           x-www-browser "https://dist.ipfs.io/#$soft"
+          ex=$?
+          [ $ex -ne 0 ] && cli_error "Couldn't open browser: $ex"
           ;;
         *)
           echo "About $2: https://dist.ipfs.io/#$soft"

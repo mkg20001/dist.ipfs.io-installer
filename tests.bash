@@ -46,7 +46,8 @@ tests() {
 #echo " - about <package> --browser"
 #echo " - gui" N/A
 
-
+tests "Install go-ipfs (without cache updated)" "install go-ipfs" 2 "ERROR: Cache is empty!
+Run: installer.sh update-cache"
 
 tests "Update Cache" "update-cache" 0 "Fetching version lists...
 fs-repo-migrations
@@ -64,6 +65,7 @@ for soft in "${list[@]}"; do
   tests "Versions $soft" "list-versions $soft" 0
   ver=$(echo "$output" | grep "v[0-9.]*" -o | head -n 1)
   echo "Version: $soft $ver"
+  tests "Install $soft (with invalid version)" "install $soft invalid" 2 "ERROR: Invalid version for $soft (Is the cache up-to-date?)"
   tests "Install $soft (without version specified)" "install $soft" 0
   tests "Install $soft" "install $soft $ver" 0
   tests "Status $soft (installed)" "status $soft" 0
