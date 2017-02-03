@@ -542,6 +542,7 @@ package_validate() {
 }
 
 version_valid() {
+  [ -z "$1" ] return 0
   for v in $svers; do
     if [ "$v" == "$1" ]; then return 0; fi
   done

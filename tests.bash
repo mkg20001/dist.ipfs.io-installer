@@ -24,7 +24,7 @@ test_pass() {
 
 tests() {
   echo
-  echo "[test] $1"
+  echo "[test] $1 (\$ $prg $2)"
   output=$($prg $2 2>&1)
   ex=$?
   echo "$output"
