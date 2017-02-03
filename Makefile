@@ -6,4 +6,4 @@ install:
 test:
 	bash tests.bash
 docker-test:
-	$(foreach ver,$(VERSIONS),docker run -itv $(PWD):/src ubuntu:$(ver) sh -c 'apt-get update && apt-get install make curl wget sudo -y && make -C /src test' && ) echo "OK!"
+	$(foreach ver,$(VERSIONS),docker run -v $(PWD):/src ubuntu:$(ver) sh -c 'apt-get update && apt-get install make curl wget sudo -y && make -C /src test' && ) echo "OK!"
