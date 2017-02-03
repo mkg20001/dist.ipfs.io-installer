@@ -2,7 +2,9 @@
 
 list=(fs-repo-migrations go-ipfs gx gx-go ipfs-see-all ipfs-update ipget)
 
-prg="sudo bash ./installer.sh"
+arg0="./installer.sh"
+
+prg="sudo bash $arg0"
 
 hasfailed=0
 
@@ -47,7 +49,7 @@ tests() {
 #echo " - gui" N/A
 
 tests "Install go-ipfs (without cache updated)" "install go-ipfs" 2 "ERROR: Cache is empty!
-Run: installer.sh update-cache"
+Run: $arg0 update-cache"
 
 tests "Update Cache" "update-cache" 0 "Fetching version lists...
 fs-repo-migrations
