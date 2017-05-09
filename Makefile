@@ -1,4 +1,4 @@
-VERSIONS = 16.10 16.04 14.04 12.04
+VERSIONS = 17.04 16.10 16.04 14.04 12.04
 install:
 	cp installer.sh /usr/bin/ipfs-installer
 	chmod 755 /usr/bin/ipfs-installer
