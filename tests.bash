@@ -51,14 +51,16 @@ tests() {
 tests "Install go-ipfs (without cache updated)" "install go-ipfs" 2 "ERROR: Cache is empty!
 Run: $arg0 update-cache"
 
+all_cache=""
+
+for soft in "${list[@]}"; do
+  [ ! -z "$all_cache" ] all_cache="$all_cache
+"
+  all_cache="$all_cache$soft"
+done
+
 tests "Update Cache" "update-cache" 0 "Fetching version lists...
-fs-repo-migrations
-go-ipfs
-gx
-gx-go
-ipfs-see-all
-ipfs-update
-ipget
+$all_cache
 Done!"
 
 for soft in "${list[@]}"; do
