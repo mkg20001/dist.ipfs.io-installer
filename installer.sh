@@ -1,9 +1,13 @@
 #!/bin/bash
 
-list=(fs-repo-migrations go-ipfs gx gx-go ipfs-see-all ipfs-update ipget)
+list=(fs-repo-migrations go-ipfs gx gx-go ipfs-cluster-ctl ipfs-cluster-service ipfs-pack ipfs-see-all ipfs-update ipget)
 getmainrepo() {
   case "$1" in
-    fs-repo-migrations|go-ipfs|ipfs-update|ipget)
+    ipfs-cluster-ctl|ipfs-cluster-service)
+      mainrepo="ipfs"
+      subrepo="ipfs-cluster"
+      ;;
+    fs-repo-migrations|go-ipfs|ipfs-pack|ipfs-update|ipget)
       mainrepo="ipfs"
       ;;
     gx|gx-go|ipfs-see-all)
@@ -83,7 +87,7 @@ $1=$2"
   }
 
   is_brokenver() {
-    if [ "$1" == "fs-repo-migrations" ] || [ "$1" == "ipfs-update" ]; then return 0; else return 2; fi
+    if [ "$1" == "fs-repo-migrations" ]; then return 0; else return 2; fi
   }
 
   sudo() {
@@ -358,8 +362,9 @@ remove_soft() {
 show_changelog() {
   ch="/tmp/$RANDOM.$1.md"
   dialog --infobox "Loading_changelog!" 5 40
+  subrepo="$1"
   getmainrepo $1
-  wget -qq https://raw.githubusercontent.com/$mainrepo/$1/$2/CHANGELOG.md -O $ch
+  wget -qq https://raw.githubusercontent.com/$mainrepo/$subrepo/$2/CHANGELOG.md -O $ch
   if [ $? -ne 0 ]; then
     sleep 1s | dialog --infobox "Failed_to_load_changelog!" 5 40
     rm -f $ch
@@ -675,8 +680,9 @@ $res"
         lookup=$3
       fi
       ch="/tmp/$RANDOM.$1.md"
+      subrepo="$2"
       getmainrepo $2
-      wget -qq https://raw.githubusercontent.com/$mainrepo/$2/$lookup/CHANGELOG.md -O $ch
+      wget -qq https://raw.githubusercontent.com/$mainrepo/$subrepo/$lookup/CHANGELOG.md -O $ch
       if [ $? -ne 0 ]; then
         cli_error "Failed to load changelog!"
         rm -f $ch
