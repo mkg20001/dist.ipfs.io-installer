@@ -54,7 +54,7 @@ Run: $arg0 update-cache"
 all_cache=""
 
 for soft in "${list[@]}"; do
-  [ ! -z "$all_cache" ] all_cache="$all_cache
+  [ ! -z "$all_cache" ] && all_cache="$all_cache
 "
   all_cache="$all_cache$soft"
 done
@@ -67,7 +67,7 @@ for soft in "${list[@]}"; do
   tests "Remove $soft (not installed)" "remove $soft" 2 "ERROR: Not installed, not removing"
   tests "Status $soft (not installed)" "status $soft" 1
   tests "Versions $soft" "list-versions $soft" 0
-  ver=$(echo "$output" | grep "v[0-9.a-z-]*" -o | head -n 1)
+  ver=$(echo "$output" | tr " " "\n" | head -n 5 | tail -n 1)
   echo "Version: $soft $ver"
   tests "Install $soft (with invalid version)" "install $soft invalid" 2 "ERROR: Invalid version for $soft (Is the cache up-to-date?)"
   tests "Install $soft (without version specified)" "install $soft" 0
