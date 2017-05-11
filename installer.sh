@@ -134,7 +134,7 @@ $1=$2"
 
   getversion_() {
     getbin $1
-    local r=$($b $2 2> /dev/null | grep "[0-9][0-9.]*" -o)
+    local r=$($b $2 2> /dev/null | grep "[0-9][0-9.]*[0-9a-z-]*" -o)
     echo $r
   }
 
