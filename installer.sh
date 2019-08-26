@@ -1,6 +1,7 @@
 #!/bin/bash
 
-list=(fs-repo-migrations go-ipfs gx gx-go ipfs-cluster-ctl ipfs-cluster-service ipfs-pack ipfs-see-all ipfs-update ipget)
+list=(fs-repo-migrations go-ipfs gx gx-go ipfs-cluster-ctl ipfs-cluster-service ipfs-ds-convert ipfs-pack ipfs-see-all ipfs-update ipget)
+
 getmainrepo() {
   case "$1" in
     ipfs-cluster-ctl|ipfs-cluster-service)
@@ -201,7 +202,7 @@ install_version_() {
   log "Checking for compatibility (arch: $arch, os: $os)..."
 
   compatible=$(geturl $soft/$targetv/results)
-  if echo "$compatible" | grep "$b, $os, $arch,"  > /dev/null; then
+  if echo "$compatible" | grep ", $os, $arch,"  > /dev/null; then
 
     log "Downloading binary..."
     tmpd="/tmp/$soft.download.$RANDOM"

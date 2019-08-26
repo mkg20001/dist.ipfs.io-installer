@@ -1,6 +1,6 @@
 #!/bin/bash
 
-list=(fs-repo-migrations go-ipfs gx gx-go ipfs-cluster-ctl ipfs-cluster-service ipfs-pack ipfs-see-all ipfs-update ipget)
+list=(fs-repo-migrations go-ipfs gx gx-go ipfs-cluster-ctl ipfs-cluster-service ipfs-ds-convert ipfs-pack ipfs-see-all ipfs-update ipget)
 
 arg0="./installer.sh"
 
