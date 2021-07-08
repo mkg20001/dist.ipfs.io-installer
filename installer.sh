@@ -167,14 +167,12 @@ The Application will now exit..." | dialog --progressbox "dist.ipfs.io_Installer
 }
 
 dialog_unsafe() {
-  /usr/bin/dialog --backtitle "dist.ipfs.io Installer" $*
+  command dialog --backtitle "dist.ipfs.io Installer" "$@"
 }
 
 dialog() {
   t="/tmp/$RANDOM"
-  args="$*"
-  args=${args//"_"/"$non_break_space"}
-  dialog_unsafe $args 2> $t
+  dialog_unsafe "$@" 2> $t
   local ex=$?
   if [ $ex -ne 0 ] && [ $ex -ne 1 ] && [ $ex -ne 2 ]; then
     cat $t
@@ -201,7 +199,7 @@ install_version_() {
 
   log "Checking for compatibility (arch: $arch, os: $os)..."
 
-  compatible=$(geturl $soft/$targetv/results)
+  compatible=$(geturl "$soft/$targetv/results")
   if echo "$compatible" | grep ", $os, $arch,"  > /dev/null; then
 
     log "Downloading binary..."
@@ -278,28 +276,28 @@ install_version() {
 select_version() {
   title="$1"
   soft="$2"
-  res=""
+  res=()
   for v in $svers; do
     cver=${v/"v"/""}
     ap=""
     if [ "$cver" == "$slatest" ]; then
-      ap="${ap}_(latest)"
+      ap="${ap} (latest)"
     fi
     if [ "$cver" == "$sver" ]; then
-      ap="${ap}_(current)"
+      ap="${ap} (current)"
     fi
-    res="${soft}_$cver $v$ap $res"
+    res=("${res[@]}" "${soft} $cver" "$v$ap")
   done
-  dialog --menu $title 0 0 20 $res
+  dialog --menu "$title" 0 0 20 "${res[@]}"
   if [ -z $res ]; then return 2; fi
   for v in $svers; do
     cver=${v/"v"/""}
-    if [ "$res" == "${soft}${non_break_space}$cver" ]; then
-      $3 $soft $v $cver $sver $sverv
+    if [ "$res" == "${soft} $cver" ]; then
+      "$3" "$soft" "$v" "$cver" "$sver" "$sverv"
       return $?
     fi
   done
-  quit_with_error "Index error"
+  quit_with_error "Index error - Unknown index '$res'"
 }
 
 ipfs_upgrade() {
@@ -322,16 +320,16 @@ ipfs_upgrade() {
 ipfs_update() {
   if isinstalled ipfs-update; then
     svers=$(ipfs-update versions)
-    select_version "Upgrade_go-ipfs_(with_ipfs-update)" go-ipfs "ipfs_upgrade"
+    select_version "Upgrade go-ipfs (with ipfs-update)" go-ipfs "ipfs_upgrade"
   else
     t="You need to install ipfs-update first\nDo you want to do this now?"
-    dialog --yesno ${t//" "/"$non_break_space"} 10 70
+    dialog --yesno "$t" 10 70
     if [ $? -ne 0 ]; then
       return 1
     else
       getinfo ipfs-update
       getbin ipfs-update
-      select_version "Install_ipfs-update" ipfs-update "install_version"
+      select_version "Install ipfs-update" ipfs-update "install_version"
       if [ $? -ne 0 ]; then
         return 2
       else
@@ -384,30 +382,30 @@ prog_menu() {
   res=()
   if isinstalled $soft; then
     if is_brokenver $soft; then
-      res+=("Installed" "Unknown_Version")
+      res+=("Installed" "Unknown Version")
     else
-      res+=("Current_Version:" $sver)
+      res+=("Current Version:" $sver)
     fi
-    res+=("Latest_Version:" $slatest)
+    res+=("Latest Version:" $slatest)
     if [ "$b" == "ipfs" ]; then
-      res+=("Upgrade_with_ipfs-update..." "Will_upgrade_go-ipfs_safely_(recommended)");
+      res+=("Upgrade with ipfs-update..." "Will upgrade go-ipfs safely (recommended)");
     fi
-    res+=("Change_Version..." "Upgrade_or_downgrade_$soft")
-    res+=("Remove_$soft..." "Will_remove_the_binary_(data_will_be_kept)")
+    res+=("Change Version..." "Upgrade or downgrade $soft")
+    res+=("Remove $soft..." "Will remove the binary (data will be kept)")
   else
-    res+=("Install..." "Download_and_install_${soft}_to_/usr/local/bin/$b")
+    res+=("Install..." "Download and install ${soft} to /usr/local/bin/$b")
   fi
   res+=("About..." "https://dist.ipfs.io/#$soft")
-  res+=("Changelog..." "List_all_changes_made...")
-  dialog --menu $soft 0 0 10 ${res[@]}
+  res+=("Changelog..." "List all changes made...")
+  dialog --menu "$soft" 0 0 10 "${res[@]}"
   if [ -z $res ]; then mainmenu; else
     case $res in
       Changelog*)
-        select_version "Changelog_for" $soft "show_changelog"
+        select_version "Changelog for" $soft "show_changelog"
         prog_menu $soft
         ;;
       Change*)
-        select_version "Change_Version_of_$soft" $soft "install_version"
+        select_version "Change Version of $soft" $soft "install_version"
         prog_menu $soft
         ;;
       Remove*)
@@ -415,7 +413,7 @@ prog_menu() {
         if [ $? -ne 0 ]; then prog_menu $soft; else mainmenu; fi
         ;;
       Install*)
-        select_version "Installing_$soft" $soft "install_version"
+        select_version "Installing $soft" $soft "install_version"
         prog_menu $soft
         ;;
       About*)
@@ -461,18 +459,18 @@ mainmenu() {
     if isinstalled $soft; then
       getinfo $soft
       if [ "$sver" == "N/A" ] || is_brokenver $soft; then
-        t="Installed,______Latest_$slatest"
+        t="Installed,      Latest $slatest"
       else
-        if [ "x$sver" != "x$slatest" ]; then ap="_(Update_available!)"; else ap=""; fi
-        t="Current:_${sver},_Latest:_$slatest$ap"
+        if [ "x$sver" != "x$slatest" ]; then ap=" (Update available!)"; else ap=""; fi
+        t="Current: ${sver}, Latest: $slatest$ap"
       fi
     else
-      t="Not_installed"
+      t="Not installed"
     fi
-    res+=($soft)
-    res+=($t)
+    res+=("$soft")
+    res+=("$t")
   done
-  dialog --help-button --help-label "Refresh_Cache" --menu "dist.ipfs.io" 0 0 10 ${res[@]}
+  dialog --help-button --help-label "Refresh Cache" --menu "dist.ipfs.io" 0 0 10 "${res[@]}"
 
   if [ -z $res ]; then
     quit_app
@@ -490,7 +488,7 @@ fetchlist_() {
   log "Fetching version lists..."
   for soft in ${list[@]}; do
     log "$soft"
-    vers=$(geturl $soft/versions)
+    vers=$(geturl "$soft/versions")
     [ $? -ne 0 ] && echo "ERROR: Failed to download version list for $soft!" && exit $?
     updatedata versions_$soft "$(echo $vers)"
   done
@@ -500,11 +498,11 @@ fetchlist_() {
 fetchlist() {
   tmpfile="/tmp/dist-tail-$RANDOM"
   touch $tmpfile
-  fetchlist_ | dialog_unsafe --timeout 1 --programbox Update${non_break_space}Cache... 20 50 2> /dev/null
+  fetchlist_ | dialog_unsafe --timeout 1 --programbox "Update Cache..." 20 50 2> /dev/null
 }
 
 mainloop() {
-  echo "Loading..." | dialog --progressbox "dist.ipfs.io_Installer" 7 30
+  echo "Loading..." | dialog --progressbox "dist.ipfs.io Installer" 7 30
   local last=$(getdata lastscan)
   if [ "x$last" == "x" ] || [ "x$1" == "xf" ]; then
     fetchlist
